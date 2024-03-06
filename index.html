@@ -4,71 +4,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interval Timer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        .progressBar {
+        body {
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+        }
+        .workProgressBar {
             width: 100%;
-            height: 20px;
-            background-color: #007bff;
+            height: 5px;
+            background-color: #C06CB4;
             transition: width 0.5s;
+            border-radius: 5px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+        .restProgressBar {
+            width: 100%;
+            height: 5px;
+            background-color: #6C5B7B;
+            transition: width 0.5s;
+            border-radius: 5px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+        .overallProgressBar {
+            width: 100%;
+            height: 5px;
+            background-color: #355C7D;
+            transition: width 0.5s;
+            border-radius: 5px;
+            margin-top: 5px;
+            margin-bottom: 10px;
         }
         .interval {
             display: flex;
             align-items: center;
+            margin-bottom: 10px;
         }
         .label {
             margin-right: 5px;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        label {
-            display: block;
-            margin-bottom: 10px;
         }
         input:invalid {
             border: 2px solid red;
         }
         input {
-            margin: 10px;
+            margin:10px;
         }
         button {
             margin: 10px;
             padding: 10px 20px;
-            background-color: #007bff;
+            background-color: #355C7D;
             color: #fff;
             border: none;
             cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #182938; /* Darker shade on hover */
+        }
+        #timerText {
+            font-size: 24px;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>Hangboard Interval Timer</h1>
+    <h1 style="font-size: 24px;">Hangboard Interval Timer</h1>
     <div class="interval">
-        <div class="label">Work (s):</div>
-        <input type="number" id="workDuration" placeholder="e.g., 60">
+        <div class="label">Work:</div>
+        <input type="number" id="workDuration" placeholder="e.g., 60s">
     </div>
-    <div id="workProgress" class="progressBar"></div>
+    <div id="workProgress" class="workProgressBar"></div>
     <div class="interval">
-        <div class="label">Rest (s):</div>
-        <input type="number" id="restDuration" placeholder="e.g., 30">
+        <div class="label">Rest:</div>
+        <input type="number" id="restDuration" placeholder="e.g., 30s">
     </div>
-    <div id="restProgress" class="progressBar"></div>
+    <div id="restProgress" class="restProgressBar"></div>
     <div class="interval">
         <div class="label">Repetitions:</div>
-        <input type="number" id="repetitions" placeholder="e.g., 10">
+        <input type="number" id="repetitions" placeholder="e.g., 10s">
     </div>
-    <div id="repProgress" class="progressBar"></div>
+    <div class="label"> Progress</div>
+    <div id="repProgress" class="overallProgressBar"></div>
     <button id="startButton" onclick="startTimer()">Start</button>
-    <button id="stopButton" onclick="stopTimer()">Stop</button>
+    <button id="pauseButton" onclick="pauseTimer()" style="display:none">Pause</button>
+    <button id="resumeButton" onclick="resumeTimer()" style="display:none">Resume</button>
+    <button id="stopButton" onclick="stopTimer()">Reset</button>
+    <div id="timerText"></div>
     <script>
         let timerId = null;
         let isWorkPhase = true; // Indicates if it's the work phase
         let repetitions = 0;
         let isFirstRun = true;
+        let totalReps = 0; // Store total repetitions required
+        let currentRep = 0; // Current repetition count
         
+        function updateTimerText(seconds) {
+            document.getElementById('timerText').textContent = `Time Left: ${seconds} seconds`;
+        }
+
         function updateProgressBar(id, progress) {
             document.getElementById(id).style.width = `${progress}%`;
         }
@@ -76,40 +116,66 @@
         function stopTimer() {
             clearInterval(timerId);
             timerId = null;
-            document.getElementById('workProgress').style.width = '100%';
-            document.getElementById('restProgress').style.width = '100%';
-            document.getElementById('repetitions').textContent = 0; // Reset repetitions
+            document.getElementById('workProgress').style.width = '0%'; // Reset to 0% for visual indication
+            document.getElementById('restProgress').style.width = '0%'; // Reset to 0% for visual indication
+            document.getElementById('timerText').textContent = '';
+            document.getElementById('pauseButton').style.display = 'none';
+            document.getElementById('startButton').style.display = 'inline-block';
             isWorkPhase = true;
-            isFirstRun = true; // Reset to initial state
+            isFirstRun = true;
+            currentRep = 0; // Reset current repetition count
+        }
+
+        function pauseTimer() {
+            clearInterval(timerId);
+            timerId = null;
+            document.getElementById('pauseButton').style.display = 'none';
+            document.getElementById('resumeButton').style.display = 'inline-block';
+        }
+        
+        function resumeTimer() {
+            document.getElementById('resumeButton').style.display = 'none';
+            document.getElementById('pauseButton').style.display = 'inline-block';
+            startTimer();
         }
         
         function startTimer() {
-            if (timerId) return; // Prevent multiple concurrent timers
-        
+            if (timerId) return; // Prevent multiple timers
+            document.getElementById('pauseButton').style.display = 'inline-block'; // Show pause button
+            document.getElementById('startButton').style.display = 'none'; // Hide start button
+            
             const workDuration = parseInt(document.getElementById('workDuration').value, 10);
             const restDuration = parseInt(document.getElementById('restDuration').value, 10);
-            let duration = isWorkPhase ? workDuration : restDuration;
-            let elapsedTime = 0;
-        
-            if (isNaN(workDuration) || isNaN(restDuration) || workDuration <= 0 || restDuration <= 0) {
-                alert("Please enter valid positive numbers for both durations.");
+            totalReps = parseInt(document.getElementById('repetitions').value, 10);
+            
+            if (isFirstRun) currentRep = 0; // Reset repetitions on first run
+            
+            if (isNaN(workDuration) || isNaN(restDuration) || isNaN(totalReps) || workDuration <= 0 || restDuration <= 0 || totalReps <= 0) {
+                alert("Please enter valid positive numbers for all inputs.");
                 stopTimer();
                 return;
             }
-        
+            
+            let duration = isWorkPhase ? workDuration : restDuration;
+            let elapsedTime = 0;
+            
             timerId = setInterval(() => {
                 if (elapsedTime < duration) {
                     elapsedTime++;
-                    const progress = ((duration - elapsedTime) / duration) * 100;
+                    const progress = (elapsedTime / duration) * 100;
                     const progressBarId = isWorkPhase ? 'workProgress' : 'restProgress';
                     updateProgressBar(progressBarId, progress);
+                    updateTimerText(duration - elapsedTime);
                 } else {
-                    if (isWorkPhase && !isFirstRun) { // Increment repetitions if we just finished a work phase
-                        repetitions++;
-                        document.getElementById('repetitions').textContent = repetitions;
+                    if (!isWorkPhase) { // Increment repetitions if we just finished a rest phase
+                        currentRep++;
+                        if (currentRep >= totalReps) {
+                            alert("Completed all repetitions!");
+                            stopTimer();
+                            return;
+                        }
                     }
                     isWorkPhase = !isWorkPhase; // Toggle phase
-                    isFirstRun = false; // No longer the first run after the first phase
                     clearInterval(timerId);
                     timerId = null;
                     startTimer(); // Start next phase
