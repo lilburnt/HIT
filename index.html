@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interval Timer</title>
+    <style>
+        .progressBar {
+            width: 100%;
+            height: 20px;
+            background-color: #007bff;
+            transition: width 0.5s;
+        }
+        .interval {
+            display: flex;
+            align-items: center;
+        }
+        .label {
+            margin-right: 5px;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        input:invalid {
+            border: 2px solid red;
+        }
+        input {
+            margin: 10px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Hangboard Interval Timer</h1>
+    <div class="interval">
+        <div class="label">Work (s):</div>
+        <input type="number" id="workDuration" placeholder="e.g., 60">
+    </div>
+    <div id="workProgress" class="progressBar"></div>
+    <div class="interval">
+        <div class="label">Rest (s):</div>
+        <input type="number" id="restDuration" placeholder="e.g., 30">
+    </div>
+    <div id="restProgress" class="progressBar"></div>
+    <div class="interval">
+        <div class="label">Repetitions:</div>
+        <input type="number" id="repetitions" placeholder="e.g., 10">
+    </div>
+    <div id="repProgress" class="progressBar"></div>
+    <button id="startButton" onclick="startTimer()">Start</button>
+    <button id="stopButton" onclick="stopTimer()">Stop</button>
+    <script>
+        let timerId = null;
+        let isWorkPhase = true; // Indicates if it's the work phase
+        let repetitions = 0;
+        let isFirstRun = true;
+        
+        function updateProgressBar(id, progress) {
+            document.getElementById(id).style.width = `${progress}%`;
+        }
+        
+        function stopTimer() {
+            clearInterval(timerId);
+            timerId = null;
+            document.getElementById('workProgress').style.width = '100%';
+            document.getElementById('restProgress').style.width = '100%';
+            document.getElementById('repetitions').textContent = 0; // Reset repetitions
+            isWorkPhase = true;
+            isFirstRun = true; // Reset to initial state
+        }
+        
+        function startTimer() {
+            if (timerId) return; // Prevent multiple concurrent timers
+        
+            const workDuration = parseInt(document.getElementById('workDuration').value, 10);
+            const restDuration = parseInt(document.getElementById('restDuration').value, 10);
+            let duration = isWorkPhase ? workDuration : restDuration;
+            let elapsedTime = 0;
+        
+            if (isNaN(workDuration) || isNaN(restDuration) || workDuration <= 0 || restDuration <= 0) {
+                alert("Please enter valid positive numbers for both durations.");
+                stopTimer();
+                return;
+            }
+        
+            timerId = setInterval(() => {
+                if (elapsedTime < duration) {
+                    elapsedTime++;
+                    const progress = ((duration - elapsedTime) / duration) * 100;
+                    const progressBarId = isWorkPhase ? 'workProgress' : 'restProgress';
+                    updateProgressBar(progressBarId, progress);
+                } else {
+                    if (isWorkPhase && !isFirstRun) { // Increment repetitions if we just finished a work phase
+                        repetitions++;
+                        document.getElementById('repetitions').textContent = repetitions;
+                    }
+                    isWorkPhase = !isWorkPhase; // Toggle phase
+                    isFirstRun = false; // No longer the first run after the first phase
+                    clearInterval(timerId);
+                    timerId = null;
+                    startTimer(); // Start next phase
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
