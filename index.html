@@ -98,13 +98,14 @@
     <button id="stopButton" onclick="stopTimer()">Reset</button>
     <div id="timerText"></div>
     <script>
+
         let timerId = null;
         let isWorkPhase = true; // Indicates if it's the work phase
         let repetitions = 0;
         let isFirstRun = true;
         let totalReps = 0; // Store total repetitions required
         let currentRep = 0; // Current repetition count
-        
+
         function updateTimerText(seconds) {
             document.getElementById('timerText').textContent = `Time Left: ${seconds} seconds`;
         }
@@ -112,13 +113,20 @@
         function updateProgressBar(id, progress) {
             document.getElementById(id).style.width = `${progress}%`;
         }
-        
-        function stopTimer() {
-            clearInterval(timerId);
-            timerId = null;
+
+        function resetProgressBarAndText() {
             document.getElementById('workProgress').style.width = '0%'; // Reset to 0% for visual indication
             document.getElementById('restProgress').style.width = '0%'; // Reset to 0% for visual indication
             document.getElementById('timerText').textContent = '';
+        }
+
+        function stopTimer() {
+            clearInterval(timerId);
+            timerId = null;
+            resetProgressBarAndText();
+            // document.getElementById('workProgress').style.width = '0%'; // Reset to 0% for visual indication
+            // document.getElementById('restProgress').style.width = '0%'; // Reset to 0% for visual indication
+            // document.getElementById('timerText').textContent = '';
             document.getElementById('pauseButton').style.display = 'none';
             document.getElementById('startButton').style.display = 'inline-block';
             isWorkPhase = true;
@@ -132,33 +140,33 @@
             document.getElementById('pauseButton').style.display = 'none';
             document.getElementById('resumeButton').style.display = 'inline-block';
         }
-        
+
         function resumeTimer() {
             document.getElementById('resumeButton').style.display = 'none';
             document.getElementById('pauseButton').style.display = 'inline-block';
             startTimer();
         }
-        
+
         function startTimer() {
             if (timerId) return; // Prevent multiple timers
             document.getElementById('pauseButton').style.display = 'inline-block'; // Show pause button
             document.getElementById('startButton').style.display = 'none'; // Hide start button
-            
+
             const workDuration = parseInt(document.getElementById('workDuration').value, 10);
             const restDuration = parseInt(document.getElementById('restDuration').value, 10);
             totalReps = parseInt(document.getElementById('repetitions').value, 10);
-            
+
             if (isFirstRun) currentRep = 0; // Reset repetitions on first run
-            
+
             if (isNaN(workDuration) || isNaN(restDuration) || isNaN(totalReps) || workDuration <= 0 || restDuration <= 0 || totalReps <= 0) {
                 alert("Please enter valid positive numbers for all inputs.");
                 stopTimer();
                 return;
             }
-            
+
             let duration = isWorkPhase ? workDuration : restDuration;
             let elapsedTime = 0;
-            
+
             timerId = setInterval(() => {
                 if (elapsedTime < duration) {
                     elapsedTime++;
