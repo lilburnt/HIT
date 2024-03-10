@@ -116,14 +116,16 @@
         let intervalState = IntervalState.undefined;
         let timerState = TimerState.stopped;
         let setCount = 0;
-        let elapsedTime = 0;
+        let intElapsedTime = 0;
+        let totalElapsedTime = 0;
+        let totalDuration = 0;
 
         // values to capture inputs
         let workDuration = NaN;
         let restDuration = NaN;
         let reps = NaN;
 
-        // constant first and last phase duration
+        // constant first phase duration to prepare
         const prepareDuration = 3;
 
         function updateTimerTextWrapper(iState, seconds){
@@ -204,7 +206,8 @@
             workDuration = NaN;
             restDuration = NaN;
             reps = NaN;
-            elapsedTime = 0;
+            intElapsedTime = 0;
+            totalElapsedTime = 0;
         }
 
         function pauseTimer() {
@@ -228,6 +231,7 @@
             workDuration = parseInt(document.getElementById('workDuration').value, 10);
             restDuration = parseInt(document.getElementById('restDuration').value, 10);
             totalSets = parseInt(document.getElementById('repetitions').value, 10);
+            totalDuration = prepareDuration + (workDuration + restDuration) * totalSets - restDuration;
             setCount = 0;
 
             if (isNaN(workDuration) || isNaN(restDuration) || isNaN(totalSets) || workDuration <= 0 || restDuration <= 0 || totalSets <= 0) {
@@ -250,25 +254,26 @@
             timerId = setInterval(() => {
                 if (timerState == TimerState.running) {
                     let duration = getCurrentIntervalDuration(intervalState);
-                    if (elapsedTime <= duration) {
+                    updateProgressBar('repProgress', totalElapsedTime / totalDuration * 100);
+                    if (intElapsedTime <= duration) {
                         // if within the current interval and the timer is still running
-                        let progress = (elapsedTime / duration) * 100;
+                        let progress = (intElapsedTime / duration) * 100;
                         switch (intervalState) {
                             case IntervalState.prepare:
-                                // updateTimerTextWrapper(intervalState, duration - elapsedTime);
-                                updateTimerText(`Get ready in: ${duration - elapsedTime}`);
+                                // updateTimerTextWrapper(intervalState, duration - intElapsedTime);
+                                updateTimerText(`Get ready in: ${duration - intElapsedTime}`);
                                 updateProgressBar('workProgress', 0);
                                 updateProgressBar('restProgress', 0);
                                 break;
                             case IntervalState.work:
-                                // updateTimerTextWrapper(intervalState, duration - elapsedTime);
-                                updateTimerText(`Keep going for: ${duration - elapsedTime}`);
+                                // updateTimerTextWrapper(intervalState, duration - intElapsedTime);
+                                updateTimerText(`Keep going for: ${duration - intElapsedTime}`);
                                 updateProgressBar('workProgress', progress);
                                 updateProgressBar('restProgress', 0);
                                 break;
                             case IntervalState.rest:
-                                // updateTimerTextWrapper(intervalState, duration - elapsedTime);
-                                updateTimerText(`Get ready in: ${duration - elapsedTime}`);
+                                // updateTimerTextWrapper(intervalState, duration - intElapsedTime);
+                                updateTimerText(`Get ready in: ${duration - intElapsedTime}`);
                                 updateProgressBar('workProgress', 0);
                                 updateProgressBar('restProgress', progress);
                                 break;
@@ -277,10 +282,10 @@
                                 updateProgressBar('workProgress', 0);
                                 updateProgressBar('restProgress', 0);
                         }
-                        elapsedTime++;
+                        intElapsedTime++;
                     }
                     else {
-                        elapsedTime = 0;
+                        intElapsedTime = 0;
                         // time for a transition or end the timer
                         switch (intervalState) {
                             case IntervalState.prepare:
@@ -308,6 +313,7 @@
                         timerId = null;
                         startInterval();
                     }
+                    totalElapsedTime++;
                 }
 
             }, 1000);
