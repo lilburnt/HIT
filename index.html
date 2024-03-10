@@ -116,6 +116,7 @@
         let intervalState = IntervalState.undefined;
         let timerState = TimerState.stopped;
         let setCount = 0;
+        let elapsedTime = 0;
 
         // values to capture inputs
         let workDuration = NaN;
@@ -203,6 +204,7 @@
             workDuration = NaN;
             restDuration = NaN;
             reps = NaN;
+            elapsedTime = 0;
         }
 
         function pauseTimer() {
@@ -245,7 +247,6 @@
                 return;
             }
 
-            let elapsedTime = 0;
             timerId = setInterval(() => {
                 if (timerState == TimerState.running) {
                     let duration = getCurrentIntervalDuration(intervalState);
@@ -279,6 +280,7 @@
                         elapsedTime++;
                     }
                     else {
+                        elapsedTime = 0;
                         // time for a transition or end the timer
                         switch (intervalState) {
                             case IntervalState.prepare:
