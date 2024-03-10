@@ -249,25 +249,25 @@
             timerId = setInterval(() => {
                 if (timerState == TimerState.running) {
                     let duration = getCurrentIntervalDuration(intervalState);
-                    if (elapsedTime < duration) {
+                    if (elapsedTime <= duration) {
                         // if within the current interval and the timer is still running
                         let progress = (elapsedTime / duration) * 100;
                         switch (intervalState) {
                             case IntervalState.prepare:
                                 // updateTimerTextWrapper(intervalState, duration - elapsedTime);
-                                updateTimerText(`Prepare to start in: ${duration - elapsedTime}`);
+                                updateTimerText(`Get ready in: ${duration - elapsedTime}`);
                                 updateProgressBar('workProgress', 0);
                                 updateProgressBar('restProgress', 0);
                                 break;
                             case IntervalState.work:
                                 // updateTimerTextWrapper(intervalState, duration - elapsedTime);
-                                updateTimerText(`Remaining Work Time: ${duration - elapsedTime}`);
+                                updateTimerText(`Keep going for: ${duration - elapsedTime}`);
                                 updateProgressBar('workProgress', progress);
                                 updateProgressBar('restProgress', 0);
                                 break;
                             case IntervalState.rest:
                                 // updateTimerTextWrapper(intervalState, duration - elapsedTime);
-                                updateTimerText(`Prepare to start in: ${duration - elapsedTime}`);
+                                updateTimerText(`Get ready in: ${duration - elapsedTime}`);
                                 updateProgressBar('workProgress', 0);
                                 updateProgressBar('restProgress', progress);
                                 break;
