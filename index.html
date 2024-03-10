@@ -98,16 +98,40 @@
     <button id="stopButton" onclick="stopTimer()">Reset</button>
     <div id="timerText"></div>
     <script>
+        var IntervalState = {
+            prepare: 0, // initial phase to get ready to start work
+            work: 1, // working interval
+            rest: 2, // rest between intervals
+            undefined: 4 // timer is not running
+        }
 
+        var TimerState = {
+            running: 0,
+            paused: 1,
+            stopped: 2
+        }
+
+        // internal states
         let timerId = null;
-        let isWorkPhase = true; // Indicates if it's the work phase
-        let repetitions = 0;
-        let isFirstRun = true;
-        let totalReps = 0; // Store total repetitions required
-        let currentRep = 0; // Current repetition count
+        let intervalState = IntervalState.undefined;
+        let timerState = TimerState.stopped;
+        let setCount = 0;
 
-        function updateTimerText(seconds) {
-            document.getElementById('timerText').textContent = `Time Left: ${seconds} seconds`;
+        // values to capture inputs
+        let workDuration = NaN;
+        let restDuration = NaN;
+        let reps = NaN;
+
+        // constant first and last phase duration
+        const prepareDuration = 3;
+
+        function updateTimerTextWrapper(iState, seconds){
+            textString = `${iState} Time Left: ${seconds} seconds`;
+            updateTimerText(textString);
+        }
+
+        function updateTimerText(textString) {
+            document.getElementById('timerText').textContent = textString;
         }
 
         function updateProgressBar(id, progress) {
@@ -115,79 +139,165 @@
         }
 
         function resetProgressBarAndText() {
-            document.getElementById('workProgress').style.width = '0%'; // Reset to 0% for visual indication
-            document.getElementById('restProgress').style.width = '0%'; // Reset to 0% for visual indication
-            document.getElementById('timerText').textContent = '';
+            updateProgressBar('workProgress', 0);
+            updateProgressBar('restProgress', 0);
+            updateTimerText(0);
+        }
+
+        function handleButtons(startVisible, pauseVisible, stopVisible, resumeVisible) {
+            document.getElementById('startButton').style.display = startVisible ?  'inline-block': 'none';
+            document.getElementById('pauseButton').style.display = pauseVisible ? 'inline-block': 'none';
+            document.getElementById('stopButton').style.display = stopVisible ? 'inline-block': 'none';
+            document.getElementById('resumeButton').style.display = resumeVisible ? 'inline-block': 'none';
+        }
+
+        function updateButtonVisibility(tState) {
+            switch (tState) {
+                case TimerState.running:
+                    // show: pause, stop
+                    handleButtons(/*start*/ false, /*pause*/ true, /*stop*/ true, /*resume*/ false)
+                    break;
+                case TimerState.paused:
+                    // show: resume, stop
+                    handleButtons(/*start*/ false, /*pause*/ false, /*stop*/ true, /*resume*/ true)
+                    break;
+                case TimerState.stopped:
+                    // show: start, stop
+                    handleButtons(/*start*/ true, /*pause*/ false, /*stop*/ true, /*resume*/ false)
+                    break
+                default:
+                    alert('Invalid timer state for button visibility handling')
+            }
+        }
+
+        function getCurrentIntervalDuration(iState) {
+            // TODO create a map for this and update it on every start
+            switch (iState) {
+                case IntervalState.prepare:
+                    return prepareDuration;
+                case IntervalState.work:
+                    return workDuration;
+                case IntervalState.rest:
+                    return restDuration;
+                default:
+                    alert(`Getting duration for undefined interval state  ${iState}`)
+                    return 0;
+            }
         }
 
         function stopTimer() {
+            // reset internal states
+            intervalState = IntervalState.undefined;
+            timerState = TimerState.stopped;
+
+            // clear out timer and reps
             clearInterval(timerId);
             timerId = null;
+            setCount = NaN;
+
+            // update visuals
+            updateButtonVisibility(timerState);
             resetProgressBarAndText();
-            // document.getElementById('workProgress').style.width = '0%'; // Reset to 0% for visual indication
-            // document.getElementById('restProgress').style.width = '0%'; // Reset to 0% for visual indication
-            // document.getElementById('timerText').textContent = '';
-            document.getElementById('pauseButton').style.display = 'none';
-            document.getElementById('startButton').style.display = 'inline-block';
-            isWorkPhase = true;
-            isFirstRun = true;
-            currentRep = 0; // Reset current repetition count
+
+            // clear out input variables
+            workDuration = NaN;
+            restDuration = NaN;
+            reps = NaN;
         }
 
         function pauseTimer() {
             clearInterval(timerId);
             timerId = null;
-            document.getElementById('pauseButton').style.display = 'none';
-            document.getElementById('resumeButton').style.display = 'inline-block';
+            timerState = TimerState.paused;
+            updateButtonVisibility(timerState);
         }
 
         function resumeTimer() {
-            document.getElementById('resumeButton').style.display = 'none';
-            document.getElementById('pauseButton').style.display = 'inline-block';
-            startTimer();
+            timerState = TimerState.running;
+            updateButtonVisibility(timerState);
+            startInterval();
         }
 
         function startTimer() {
-            if (timerId) return; // Prevent multiple timers
-            document.getElementById('pauseButton').style.display = 'inline-block'; // Show pause button
-            document.getElementById('startButton').style.display = 'none'; // Hide start button
+            timerState = TimerState.running;
+            updateButtonVisibility(timerState);
 
-            const workDuration = parseInt(document.getElementById('workDuration').value, 10);
-            const restDuration = parseInt(document.getElementById('restDuration').value, 10);
-            totalReps = parseInt(document.getElementById('repetitions').value, 10);
+            // Update global variables upon starting the timer
+            workDuration = parseInt(document.getElementById('workDuration').value, 10);
+            restDuration = parseInt(document.getElementById('restDuration').value, 10);
+            totalSets = parseInt(document.getElementById('repetitions').value, 10);
+            setCount = 0;
 
-            if (isFirstRun) currentRep = 0; // Reset repetitions on first run
-
-            if (isNaN(workDuration) || isNaN(restDuration) || isNaN(totalReps) || workDuration <= 0 || restDuration <= 0 || totalReps <= 0) {
+            if (isNaN(workDuration) || isNaN(restDuration) || isNaN(totalSets) || workDuration <= 0 || restDuration <= 0 || totalSets <= 0) {
                 alert("Please enter valid positive numbers for all inputs.");
                 stopTimer();
                 return;
             }
 
-            let duration = isWorkPhase ? workDuration : restDuration;
-            let elapsedTime = 0;
+            intervalState = IntervalState.prepare;
+            startInterval();
+        }
 
+        function startInterval() {
+             // Prevent multiple timers
+            if (timerId) {
+                alert('Multiple timers encountered, please reset');
+                return;
+            }
+
+            let elapsedTime = 0;
             timerId = setInterval(() => {
-                if (elapsedTime < duration) {
-                    elapsedTime++;
-                    const progress = (elapsedTime / duration) * 100;
-                    const progressBarId = isWorkPhase ? 'workProgress' : 'restProgress';
-                    updateProgressBar(progressBarId, progress);
-                    updateTimerText(duration - elapsedTime);
-                } else {
-                    if (!isWorkPhase) { // Increment repetitions if we just finished a rest phase
-                        currentRep++;
-                        if (currentRep >= totalReps) {
-                            alert("Completed all repetitions!");
-                            stopTimer();
-                            return;
+                if (timerState == TimerState.running) {
+                    let duration = getCurrentIntervalDuration(intervalState);
+                    if (elapsedTime < duration) {
+                        // if within the current interval and the timer is still running
+                        let progress = (elapsedTime / duration) * 100;
+                        switch (intervalState) {
+                            case IntervalState.prepare:
+                                updateTimerTextWrapper(intervalState, duration - elapsedTime);
+                                updateProgressBar('workProgress', 0);
+                                updateProgressBar('restProgress', 0);
+                                break;
+                            case IntervalState.work:
+                                updateTimerTextWrapper(intervalState, duration - elapsedTime);
+                                updateProgressBar('workProgress', progress);
+                                break;
+                            case IntervalState.rest:
+                                updateTimerTextWrapper(intervalState, duration - elapsedTime);
+                                updateProgressBar('restProgress', progress);
+                                break;
                         }
+                        elapsedTime++;
                     }
-                    isWorkPhase = !isWorkPhase; // Toggle phase
-                    clearInterval(timerId);
-                    timerId = null;
-                    startTimer(); // Start next phase
+                    else {
+                        // time for a transition or end the timer
+                        switch (intervalState) {
+                            case IntervalState.prepare:
+                                setCount++;
+                                intervalState = IntervalState.work;
+                                break;
+                            case IntervalState.work:
+                                setCount++;
+                                intervalState = IntervalState.rest;
+                                break;
+                            case IntervalState.rest:
+                                intervalState = IntervalState.work;
+                                break;
+                        }
+
+                        // if the exit condition for the timer is met
+                        if (setCount > totalSets) {
+                            alert("Finished all sets!");
+                            stopTimer();
+                        }
+
+                        // start next interval
+                        clearInterval(timerId);
+                        timerId = null;
+                        startInterval();
+                    }
                 }
+
             }, 1000);
         }
     </script>
