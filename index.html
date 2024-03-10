@@ -141,7 +141,7 @@
         function resetProgressBarAndText() {
             updateProgressBar('workProgress', 0);
             updateProgressBar('restProgress', 0);
-            updateTimerText(0);
+            updateTimerText('');
         }
 
         function handleButtons(startVisible, pauseVisible, stopVisible, resumeVisible) {
@@ -254,18 +254,27 @@
                         let progress = (elapsedTime / duration) * 100;
                         switch (intervalState) {
                             case IntervalState.prepare:
-                                updateTimerTextWrapper(intervalState, duration - elapsedTime);
+                                // updateTimerTextWrapper(intervalState, duration - elapsedTime);
+                                updateTimerText(`Prepare to start in: ${duration - elapsedTime}`);
                                 updateProgressBar('workProgress', 0);
                                 updateProgressBar('restProgress', 0);
                                 break;
                             case IntervalState.work:
-                                updateTimerTextWrapper(intervalState, duration - elapsedTime);
+                                // updateTimerTextWrapper(intervalState, duration - elapsedTime);
+                                updateTimerText(`Remaining Work Time: ${duration - elapsedTime}`);
                                 updateProgressBar('workProgress', progress);
+                                updateProgressBar('restProgress', 0);
                                 break;
                             case IntervalState.rest:
-                                updateTimerTextWrapper(intervalState, duration - elapsedTime);
+                                // updateTimerTextWrapper(intervalState, duration - elapsedTime);
+                                updateTimerText(`Prepare to start in: ${duration - elapsedTime}`);
+                                updateProgressBar('workProgress', 0);
                                 updateProgressBar('restProgress', progress);
                                 break;
+                            default: 
+                                updateTimerText('');
+                                updateProgressBar('workProgress', 0);
+                                updateProgressBar('restProgress', 0);
                         }
                         elapsedTime++;
                     }
